@@ -1,0 +1,17 @@
+# Chaînes YouTube cibles — une URL par ligne.
+# Les lignes vides et celles commençant par « # » sont ignorées.
+# Un commentaire en fin de ligne est possible : https://www.youtube.com/@exemple  # ma note
+#
+# Formats acceptés :
+#   https://www.youtube.com/@handle
+#   https://www.youtube.com/channel/UCxxxxxxxxxxxxxxxxxxxxxx
+#   https://www.youtube.com/c/NomPersonnalise
+#   https://www.youtube.com/user/AncienNomUtilisateur
+#   @handle            (forme courte)
+#   UCxxxxxxxxxxxxxxxxxxxxxx   (channelId seul)
+#
+# Remplacez les exemples ci-dessous par vos propres chaînes :
+
+https://www.youtube.com/@GoogleDevelopers
+# https://www.youtube.com/channel/UC_x5XG1OV2P6uZZ5FSM9Ttw
+# https://www.youtube.com/user/GoogleDevelopers

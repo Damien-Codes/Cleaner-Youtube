@@ -1,0 +1,28 @@
+# --- Secrets OAuth (ne JAMAIS publier) ---------------------------------------
+client_secrets.json
+client_secret*.json
+!client_secrets.example.json
+token.json
+.env
+.env.*
+
+# --- Données locales et sorties générées (contiennent vos likes) -------------
+data/*
+!data/.gitkeep
+output/*
+!output/.gitkeep
+
+# --- Environnement Python ------------------------------------------------------
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# --- Éditeurs / OS / outils ----------------------------------------------------
+.vscode/
+.idea/
+.claude/
+.DS_Store
+Thumbs.db
