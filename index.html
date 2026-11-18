@@ -5,68 +5,332 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: https://i.ytimg.com https://*.ytimg.com https://*.ggpht.com https://*.googleusercontent.com; connect-src 'self' https://www.googleapis.com https://accounts.google.com/gsi/ https://oauth2.googleapis.com; frame-src https://accounts.google.com/gsi/; object-src 'none'; base-uri 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="description" content="Retrouvez toutes vos vidéos YouTube likées, filtrez-les par chaîne, année ou mot-clé et rouvrez-les par lots. 100 % dans votre navigateur.">
-<title>Mes vidéos YouTube likées</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23ff4e45'/%3E%3Cpath d='M26 20l20 12-20 12z' fill='%23fff'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="assets/style.css">
-<script src="assets/config.js"></script>
+<meta name="description" content="Retrouvez n'importe quelle vidéo parmi vos « J'aime » YouTube : filtrez par chaîne, par année ou par mot-clé. Gratuit, sans installation, 100 % dans votre navigateur.">
+<meta name="theme-color" content="#0b0d12">
+<title>Cleaner YouTube — Retrouvez vos vidéos YouTube likées</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Cdefs%3E%3ClinearGradient id=%27g%27 x1=%270%27 y1=%270%27 x2=%271%27 y2=%271%27%3E%3Cstop offset=%270%27 stop-color=%27%23ff7a59%27/%3E%3Cstop offset=%271%27 stop-color=%27%23e2366b%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2732%27 height=%2732%27 rx=%279%27 fill=%27url%28%23g%29%27/%3E%3Cpath d=%27M11.5 9.3c-1.4-1.6-3.9-1.6-5.2 0-1.4 1.5-1.2 3.8.3 5.2l4.9 4.5 4.9-4.5c1.5-1.4 1.6-3.7.3-5.2-1.4-1.6-3.8-1.6-5.2 0z%27 fill=%27%23fff%27/%3E%3Cpath d=%27M19.5 10.5h6.5M19.5 15h4.5M7 22h19M7 26h12%27 stroke=%27%23fff%27 stroke-width=%272.2%27 stroke-linecap=%27round%27 fill=%27none%27/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css?v=5">
+<script src="assets/config.js?v=5"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="assets/app.js" defer></script>
+<script src="assets/app.js?v=5" defer></script>
 </head>
 <body>
+<svg class="svg-defs" width="0" height="0" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="logoGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff7a59"/><stop offset="1" stop-color="#e2366b"/>
+    </linearGradient>
+  </defs>
+  <symbol id="logo-mark" viewBox="0 0 32 32">
+    <rect width="32" height="32" rx="9" fill="url(#logoGrad)"/>
+    <path d="M11.5 9.3c-1.4-1.6-3.9-1.6-5.2 0-1.4 1.5-1.2 3.8.3 5.2l4.9 4.5 4.9-4.5c1.5-1.4 1.6-3.7.3-5.2-1.4-1.6-3.8-1.6-5.2 0z" fill="#fff"/>
+    <path d="M19.5 10.5h6.5M19.5 15h4.5M7 22h19M7 26h12" stroke="#fff" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+  </symbol>
+</svg>
 
-<!-- ============================ Accueil ============================ -->
-<section id="view-home" class="center hidden" aria-labelledby="homeTitle">
-  <main class="box">
-    <h1 id="homeTitle">Mes vidéos YouTube likées</h1>
-    <p>Retrouvez toutes les vidéos que vous avez likées, filtrez-les par chaîne, par année ou par mot-clé,
-      et rouvrez-les par lots de 5 onglets.</p>
-    <div class="msg err hidden" id="homeError" role="alert"></div>
-    <div class="msg info hidden" id="homeInfo" role="status"></div>
-    <button id="signin" class="btn-google" type="button">
-      <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.3 6.9-17.7z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.7-6c-2.1 1.4-4.9 2.3-8.2 2.3-6.2 0-11.5-4.1-13.4-9.9l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>
-      Se connecter avec Google / YouTube
-    </button>
-    <p class="small">Accès en <b>lecture seule</b> (<code>youtube.readonly</code>). Aucun serveur : vos likes sont lus
-      directement depuis l'API YouTube et gardés uniquement dans <b>ce navigateur</b>.</p>
-    <p class="small"><button class="link" type="button" data-open-config>Configuration</button></p>
+<div id="view-home" class="site hidden">
+  <nav class="topnav" aria-label="Navigation principale">
+    <div class="container topnav-inner">
+      <a class="brand" href="#top" aria-label="Cleaner YouTube, retour en haut">
+        <span class="logo" aria-hidden="true"><svg><use href="#logo-mark"/></svg></span>
+        Cleaner YouTube
+      </a>
+      <div class="navlinks">
+        <a href="#fonctionnalites">Fonctionnalités</a>
+        <a href="#comment">Comment ça marche</a>
+        <a href="#faq-donnees">Confidentialité</a>
+        <a href="#faq">FAQ</a>
+      </div>
+      <a class="navgh" href="https://github.com/Damien-Codes/Cleaner-Youtube" target="_blank" rel="noopener noreferrer" aria-label="Code source sur GitHub">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        <span>GitHub</span>
+      </a>
+      <button class="btn btn-primary btn-sm js-signin" type="button"><span class="lbl-long">Se connecter avec Google</span><span class="lbl-short">Connexion</span></button>
+    </div>
+  </nav>
+
+  <header class="hero" id="top">
+    <div class="container hero-grid">
+      <div class="hero-copy">
+        <span class="badge">Gratuit · Sans installation · 100 % dans votre navigateur</span>
+        <h1>Retrouvez enfin n'importe quelle vidéo parmi vos milliers de « J'aime » YouTube.</h1>
+        <p class="lead">YouTube ne permet pas de filtrer vos vidéos likées par chaîne ni par année : elles s'empilent dans une
+          liste interminable. Cleaner YouTube les range pour vous et vous les fait retrouver en quelques secondes.</p>
+        <div class="msg err hidden" id="homeError" role="alert"></div>
+        <div class="msg info hidden" id="homeInfo" role="status"></div>
+        <div class="hero-cta">
+          <button class="btn btn-google js-signin" type="button">
+            <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.3 6.9-17.7z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.7-6c-2.1 1.4-4.9 2.3-8.2 2.3-6.2 0-11.5-4.1-13.4-9.9l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>
+            Se connecter avec Google / YouTube
+          </button>
+          <a class="btn btn-ghost" href="#comment">Comment ça marche ?</a>
+        </div>
+        <ul class="hero-points">
+          <li>Aucune inscription</li>
+          <li>Vos données restent chez vous</li>
+          <li>Code source ouvert</li>
+        </ul>
+      </div>
+
+      <div class="mock" id="demo" role="region" aria-label="Démonstration interactive avec des données fictives">
+        <div class="mock-bar"><i></i><i></i><i></i><span>Mes vidéos likées</span><b class="mock-try">Essayez : cliquez !</b></div>
+        <div class="mock-body">
+          <div class="mock-side">
+            <div class="mock-label">Chaînes</div>
+            <div id="demoChannels" class="mock-chlist"></div>
+          </div>
+          <div class="mock-main">
+            <div class="mock-filters" id="demoYears" role="group" aria-label="Filtrer par année"></div>
+            <div id="demoResults" aria-live="polite"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="section" id="fonctionnalites" aria-labelledby="featTitle">
+      <div class="container">
+        <p class="eyebrow">Fonctionnalités</p>
+        <h2 id="featTitle">Tout ce qu'il faut pour ne plus jamais perdre une vidéo</h2>
+        <div class="features">
+          <article class="feature">
+            <div class="ficon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5h16M7 12h10M10 19h4" /></svg></div>
+            <h3>Filtrage instantané par chaîne</h3>
+            <p>Retrouvez toutes les vidéos likées d'un créateur précis en un clic, ou combinez plusieurs chaînes.</p>
+          </article>
+          <article class="feature">
+            <div class="ficon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg></div>
+            <h3>Classement chronologique par année</h3>
+            <p>Naviguez année par année, selon la date de publication de la vidéo ou la date à laquelle vous l'avez aimée.</p>
+          </article>
+          <article class="feature">
+            <div class="ficon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></div>
+            <h3>Recherche ultra-rapide par mot-clé</h3>
+            <p>Tapez quelques lettres : la liste se filtre instantanément parmi des milliers de titres.</p>
+          </article>
+          <article class="feature">
+            <div class="ficon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="13" height="11" rx="2"/><path d="M8 4h11a2 2 0 012 2v9"/></svg></div>
+            <h3>Ouverture groupée intelligente</h3>
+            <p>Rouvrez une sélection de vidéos en un clic, petit à petit, sans saturer votre navigateur.</p>
+          </article>
+          <article class="feature">
+            <div class="ficon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></div>
+            <h3>Export CSV &amp; JSON</h3>
+            <p>Sauvegardez votre liste de vidéos ou ouvrez-la dans un tableur pour l'exploiter hors ligne.</p>
+          </article>
+          <article class="feature">
+            <div class="ficon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg></div>
+            <h3>Zéro serveur, 100 % privé</h3>
+            <p>Vos données ne quittent jamais votre navigateur. Personne d'autre que vous n'y a accès.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt" id="comment" aria-labelledby="howTitle">
+      <div class="container">
+        <p class="eyebrow">Comment ça marche</p>
+        <h2 id="howTitle">Opérationnel en moins d'une minute</h2>
+        <ol class="steps">
+          <li class="step">
+            <span class="num">1</span>
+            <h3>Connectez votre compte Google</h3>
+            <p>En un clic, via la fenêtre de connexion officielle et sécurisée de Google.</p>
+          </li>
+          <li class="step">
+            <span class="num">2</span>
+            <h3>Synchronisation automatique</h3>
+            <p>L'outil récupère l'ensemble de vos vidéos likées et les classe pour vous.</p>
+          </li>
+          <li class="step">
+            <span class="num">3</span>
+            <h3>Explorez, filtrez et ouvrez</h3>
+            <p>Retrouvez vos vidéos par chaîne, par année ou par mot-clé, puis rouvrez-les en un clic.</p>
+          </li>
+        </ol>
+        <div class="center-cta">
+          <button class="btn btn-primary js-signin" type="button">Commencer maintenant</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt" id="faq" aria-labelledby="faqTitle">
+      <div class="container narrow">
+        <p class="eyebrow">FAQ</p>
+        <h2 id="faqTitle">Questions fréquentes</h2>
+        <div class="faq">
+          <details>
+            <summary>Mon compte Google est-il en sécurité ?</summary>
+            <p>Oui. La connexion passe par la fenêtre officielle de Google : nous ne voyons jamais votre mot de passe.
+              L'accès demandé permet uniquement de <b>consulter</b> votre compte YouTube : rien ne peut être publié,
+              modifié ni supprimé. Vous pouvez retirer cet accès à tout moment depuis votre compte Google.</p>
+          </details>
+          <details id="faq-donnees">
+            <summary>Où sont stockées mes données ?</summary>
+            <p>Uniquement dans votre navigateur, sur votre appareil. Le bouton « Se déconnecter » ferme votre session ;
+              « Supprimer mes données » efface tout ce qui a été enregistré et retire l'accès à votre compte.</p>
+          </details>
+          <details>
+            <summary>Combien de vidéos l'outil peut-il gérer ?</summary>
+            <p>Plusieurs milliers sans difficulté : l'intégralité de votre liste « J'aime » est récupérée, puis filtrée
+              instantanément. La première synchronisation peut prendre quelques secondes pour les très grandes listes.</p>
+          </details>
+          <details>
+            <summary>J'ai trouvé un bug ou j'ai une idée, comment le signaler ?</summary>
+            <p>Ouvrez un ticket sur la page
+              <a href="https://github.com/Damien-Codes/Cleaner-Youtube/issues" target="_blank" rel="noopener noreferrer">GitHub Issues du projet</a>.
+              Toutes les suggestions sont les bienvenues.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
   </main>
-</section>
 
-<!-- ======================== Chargement ============================ -->
-<section id="view-loading" class="center hidden" aria-labelledby="loadTitle">
-  <main class="box">
-    <h1 id="loadTitle">Récupération de vos likes…</h1>
-    <p id="loadWho">Lecture de votre playlist « J'aime » sur YouTube.</p>
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-card">
+        <div class="footer-cols">
+          <div class="footer-about">
+            <a class="brand" href="#top"><span class="logo" aria-hidden="true"><svg><use href="#logo-mark"/></svg></span>Cleaner YouTube</a>
+            <p>Retrouvez, filtrez et classez toutes vos vidéos likées <br>directement dans votre navigateur. 100 % gratuit.</p>
+          </div>
+          <nav class="footer-col" aria-labelledby="ftLinks">
+            <h3 id="ftLinks">Liens utiles</h3>
+            <a href="#fonctionnalites">Fonctionnalités</a>
+            <a href="#comment">Comment ça marche</a>
+            <a href="#faq">FAQ</a>
+            <a href="https://github.com/Damien-Codes/Cleaner-Youtube" target="_blank" rel="noopener noreferrer">GitHub</a>
+          </nav>
+          <nav class="footer-col" aria-labelledby="ftInfos">
+            <h3 id="ftInfos">Infos</h3>
+            <a href="#faq-donnees">Confidentialité</a>
+            <button type="button" class="footer-link" data-dialog="termsDialog">Conditions d'utilisation</button>
+            <button type="button" class="footer-link" data-dialog="licenseDialog">Licence MIT</button>
+            <a href="https://github.com/Damien-Codes/Cleaner-Youtube/issues" target="_blank" rel="noopener noreferrer">Signaler un bug</a>
+          </nav>
+        </div>
+        <div class="footer-bottom">
+          <p class="footer-copy">© 2026 Damien-Codes</p>
+          <p class="footer-legal">Code sous licence MIT. Non affilié à Google ni à YouTube. Outil d'organisation uniquement : toutes vos données
+            sont traitées localement dans votre navigateur et ne sont envoyées sur aucun serveur.</p>
+        </div>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<dialog class="modal" id="termsDialog" aria-labelledby="termsTitle">
+  <div class="modal-head">
+    <h2 id="termsTitle">Conditions d'utilisation</h2>
+    <button type="button" class="icon-btn" data-close aria-label="Fermer">×</button>
+  </div>
+  <div class="modal-body">
+    <p>Cleaner YouTube est un outil gratuit et open source qui vous aide à organiser les vidéos que vous avez aimées sur YouTube.</p>
+    <h3>Utilisation</h3>
+    <ul>
+      <li>Le service est fourni gratuitement, « en l'état », sans garantie de disponibilité ni de résultat.</li>
+      <li>Vous vous connectez avec votre propre compte Google et restez responsable de son utilisation, dans le respect des conditions de Google et de YouTube.</li>
+      <li>L'accès demandé permet uniquement de <b>consulter</b> votre compte YouTube : rien n'est publié, modifié ni supprimé.</li>
+    </ul>
+    <h3>Données</h3>
+    <ul>
+      <li>Vos vidéos sont lues chez YouTube puis enregistrées uniquement dans votre navigateur. Aucune donnée n'est envoyée sur un autre serveur.</li>
+      <li>« Se déconnecter » ferme votre session ; « Supprimer mes données » efface tout ce qui a été enregistré et retire l'accès à votre compte.</li>
+      <li>Vous pouvez aussi retirer l'accès à tout moment depuis les paramètres de sécurité de votre compte Google.</li>
+    </ul>
+    <h3>Responsabilité</h3>
+    <p>Cleaner YouTube n'est pas affilié à Google ni à YouTube. Les auteurs ne peuvent être tenus responsables d'un usage
+      inapproprié de l'outil ni d'une éventuelle indisponibilité des services de Google.</p>
+  </div>
+</dialog>
+
+<dialog class="modal" id="licenseDialog" aria-labelledby="licenseTitle">
+  <div class="modal-head">
+    <h2 id="licenseTitle">Licence MIT</h2>
+    <button type="button" class="icon-btn" data-close aria-label="Fermer">×</button>
+  </div>
+  <div class="modal-body">
+    <p class="modal-note">Le code source de Cleaner YouTube est distribué sous licence MIT : vous pouvez l'utiliser, le modifier et le partager librement, y compris à des fins commerciales, en conservant la mention de copyright ci-dessous.</p>
+    <pre class="license">MIT License
+
+Copyright (c) 2026 Damien-Codes
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.</pre>
+  </div>
+</dialog>
+
+<section id="view-loading" class="loading hidden" aria-labelledby="loadTitle">
+  <div class="loading-box">
+    <span class="logo logo-lg" aria-hidden="true"><svg><use href="#logo-mark"/></svg></span>
+    <h1 id="loadTitle">Synchronisation de vos likes…</h1>
+    <p id="loadWho">Lecture de votre liste « J'aime » sur YouTube.</p>
     <div class="bar indeterminate" id="loadBar" role="progressbar" aria-valuemin="0" aria-valuemax="100"><div></div></div>
     <p id="loadText">Connexion…</p>
-    <p><button id="loadCancel" type="button">Annuler</button></p>
-  </main>
+    <button id="loadCancel" class="btn btn-ghost btn-sm" type="button">Annuler</button>
+  </div>
 </section>
 
-<!-- ======================= Tableau de bord ======================== -->
 <div id="view-dash" class="layout hidden">
   <aside id="side" aria-label="Chaînes">
     <div class="side-head">
-      <h2>Chaînes <small id="chCount"></small></h2>
-      <input id="chq" type="search" placeholder="Rechercher une chaîne…" aria-label="Rechercher une chaîne">
-      <div class="quick">
-        <button id="allCh" class="chip on" type="button">Toutes les chaînes</button>
+      <div class="side-title">
+        <h2>Chaînes</h2>
+        <span class="count-badge" id="chCount">0</span>
+        <button class="icon-btn side-close" id="sideClose" type="button" aria-label="Fermer la liste des chaînes">×</button>
       </div>
-      <div class="notice" id="selInfo"></div>
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg>
+        <input id="chq" type="search" placeholder="Rechercher une chaîne…" aria-label="Rechercher une chaîne" autocomplete="off">
+        <button class="clear-btn hidden" id="chqClear" type="button" aria-label="Vider la recherche">×</button>
+      </div>
+      <div class="side-tools">
+        <label for="chSort">Trier</label>
+        <select id="chSort" aria-label="Trier les chaînes">
+          <option value="n">Plus likées</option>
+          <option value="az">A → Z</option>
+        </select>
+      </div>
+      <button id="allCh" class="all-btn on" type="button">Toutes les chaînes</button>
+      <div class="sel-area hidden" id="selArea">
+        <div class="sel-chips" id="selChips" aria-label="Chaînes sélectionnées"></div>
+        <button id="clearSel" class="clear-sel" type="button">Effacer la sélection</button>
+      </div>
     </div>
-    <div class="chlist" id="chlist" role="listbox" aria-multiselectable="true"></div>
+    <div class="chlist" id="chlist" role="listbox" aria-multiselectable="true" aria-label="Liste des chaînes"></div>
   </aside>
+  <div class="side-backdrop" id="sideBackdrop" aria-hidden="true"></div>
 
-  <main>
-    <header>
+  <main class="dash-main">
+    <header class="dash-header">
       <div class="title-row">
-        <button class="toggle-side" id="toggleSide" type="button">☰ Chaînes</button>
-        <h1>Mes vidéos YouTube likées</h1>
-        <span class="user" id="account"></span>
-        <button id="refresh" type="button" title="Relire vos likes sur YouTube">Actualiser</button>
-        <button type="button" data-open-config>Configuration</button>
-        <button id="deleteData" type="button" class="danger" title="Vide le cache de ce navigateur et révoque l'accès">Supprimer mes données locales</button>
+        <button class="btn btn-sm toggle-side" id="toggleSide" type="button">☰ Chaînes</button>
+        <div class="dash-title">
+          <h1>Mes vidéos likées</h1>
+          <span class="user" id="account"></span>
+        </div>
+        <div class="dash-actions">
+          <button id="refresh" class="btn btn-sm" type="button" title="Récupérer vos nouveaux likes depuis YouTube">↻ Actualiser</button>
+          <button id="logout" class="btn btn-sm" type="button" title="Fermer la session et revenir à l'accueil">Se déconnecter</button>
+          <button id="deleteData" class="btn btn-sm btn-danger" type="button" title="Effacer les données de ce navigateur et retirer l'accès Google">Supprimer mes données</button>
+        </div>
       </div>
       <div class="msg hidden" id="banner" role="status"></div>
       <div class="stats" id="stats"></div>
@@ -83,18 +347,18 @@
           <option value="desc">Plus récentes d'abord</option>
           <option value="asc">Plus anciennes d'abord</option>
         </select>
-        <button id="reset" type="button">Réinitialiser</button>
+        <button id="reset" class="btn btn-sm" type="button">Réinitialiser</button>
       </div>
       <div class="actions">
-        <button id="openBatch" class="primary" type="button">Ouvrir 5 vidéos</button>
-        <button id="openReset" type="button" class="hidden">Recommencer</button>
+        <button id="openBatch" class="btn btn-sm btn-primary" type="button">Ouvrir 5 vidéos</button>
+        <button id="openReset" class="btn btn-sm hidden" type="button">Recommencer</button>
         <span class="notice" id="openInfo"></span>
         <span class="sep"></span>
-        <button id="expand" type="button">Tout déplier</button>
-        <button id="collapse" type="button">Tout replier</button>
-        <button id="copy" type="button">Copier les liens</button>
-        <button id="csv" type="button">Exporter CSV</button>
-        <button id="json" type="button">Exporter JSON</button>
+        <button id="expand" class="btn btn-sm" type="button">Tout déplier</button>
+        <button id="collapse" class="btn btn-sm" type="button">Tout replier</button>
+        <button id="copy" class="btn btn-sm" type="button">Copier les liens</button>
+        <button id="csv" class="btn btn-sm" type="button">Exporter CSV</button>
+        <button id="json" class="btn btn-sm" type="button">Exporter JSON</button>
       </div>
       <div class="pending hidden" id="pending" role="status"></div>
     </header>
@@ -102,26 +366,6 @@
   </main>
 </div>
 
-<!-- ======================== Configuration ========================= -->
-<dialog id="configDialog" aria-labelledby="cfgTitle">
-  <h2 id="cfgTitle">Configuration</h2>
-  <p>Ce site utilise un <b>ID client OAuth « Application Web »</b> de Google Cloud. Si vous hébergez votre
-    propre copie (fork), saisissez ici votre ID client : il est enregistré uniquement dans ce navigateur.</p>
-  <label for="clientIdInput">ID client OAuth</label>
-  <input id="clientIdInput" type="text" spellcheck="false" autocomplete="off"
-         placeholder="123456789012-abcdefghijklmnop.apps.googleusercontent.com">
-  <p class="small" id="cfgSource"></p>
-  <p class="small">Origine à déclarer dans « Origines JavaScript autorisées » de cet ID client :
-    <code id="cfgOrigin"></code></p>
-  <div class="msg err hidden" id="cfgError" role="alert"></div>
-  <div class="dialog-actions">
-    <button id="cfgReset" type="button">Revenir à config.js</button>
-    <span class="sep"></span>
-    <button id="cfgClose" type="button">Fermer</button>
-    <button id="cfgSave" type="button" class="primary">Enregistrer</button>
-  </div>
-</dialog>
-
-<noscript><p class="center">Ce site nécessite JavaScript.</p></noscript>
+<noscript><p class="noscript">Ce site nécessite JavaScript.</p></noscript>
 </body>
 </html>

@@ -12,8 +12,8 @@
 
   const SCOPE = "https://www.googleapis.com/auth/youtube.readonly";
   const API = "https://www.googleapis.com/youtube/v3";
-  const CLIENT_ID_KEY = "cleanerYoutube.clientId";
-  const CLIENT_ID_RE = /^[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com$/;
+  // ID client OAuth « Application Web » : uniquement celui défini dans assets/config.js.
+  const CLIENT_ID = String(window.GOOGLE_CLIENT_ID || "").trim();
   const BATCH = 5, PAGE = 48;
 
   const $ = id => document.getElementById(id);
@@ -76,21 +76,9 @@
   })();
 
   // ======================================================================= //
-  // Configuration (ID client)
-  // ======================================================================= //
-  const defaultClientId = (typeof GOOGLE_CLIENT_ID === "string" ? GOOGLE_CLIENT_ID : "").trim();
-  function storedClientId() { try { return (localStorage.getItem(CLIENT_ID_KEY) || "").trim(); } catch (e) { return ""; } }
-  function clientId() { return storedClientId() || defaultClientId; }
-  function clientIdSource() {
-    if (storedClientId()) return "ID client personnalisé (enregistré dans ce navigateur).";
-    if (defaultClientId) return "ID client défini dans assets/config.js.";
-    return "Aucun ID client configuré.";
-  }
-
-  // ======================================================================= //
   // Google Identity Services
   // ======================================================================= //
-  let accessToken = null, tokenExpiry = 0, tokenClient = null, tokenClientFor = null, pendingToken = null;
+  let accessToken = null, tokenExpiry = 0, tokenClient = null, pendingToken = null;
 
   function gis() {
     return window.google && google.accounts && google.accounts.oauth2 ? google.accounts.oauth2 : null;
@@ -98,25 +86,24 @@
   async function waitForGis(timeout = 10000) {
     const start = Date.now();
     while (!gis()) {
-      if (Date.now() - start > timeout) throw new Error("Impossible de charger Google Identity Services (bloqueur de contenu ?).");
+      if (Date.now() - start > timeout) throw new Error("Connexion temporairement indisponible.");
       await sleep(100);
     }
     return gis();
   }
   function ensureTokenClient() {
-    const id = clientId();
-    if (!id) throw new Error("Aucun ID client OAuth configuré : ouvrez « Configuration ».");
+    if (!CLIENT_ID) throw new Error("Connexion temporairement indisponible.");
     if (!gis()) return null;
-    if (tokenClient && tokenClientFor === id) return tokenClient;
+    if (tokenClient) return tokenClient;
     tokenClient = gis().initTokenClient({
-      client_id: id,
+      client_id: CLIENT_ID,
       scope: SCOPE,
       callback: resp => {
         const p = pendingToken; pendingToken = null;
         if (!p) return;
-        if (resp.error) return p.reject(new Error(oauthErrorMessage(resp.error, resp.error_description)));
+        if (resp.error) return p.reject(new Error(oauthErrorMessage(resp.error)));
         if (!gis().hasGrantedAllScopes(resp, SCOPE)) {
-          return p.reject(new Error("Cochez l'accès « Afficher votre compte YouTube » pour utiliser le site."));
+          return p.reject(new Error("Autorisez l'accès à votre compte YouTube pour continuer."));
         }
         accessToken = resp.access_token;
         tokenExpiry = Date.now() + (Number(resp.expires_in) || 3600) * 1000 - 60000;
@@ -132,12 +119,10 @@
         p.reject(new Error(messages[err && err.type] || "Connexion Google impossible."));
       },
     });
-    tokenClientFor = id;
     return tokenClient;
   }
-  function oauthErrorMessage(code, description) {
-    if (code === "access_denied") return "Accès refusé. Si Google indique « Accès bloqué », demandez à être ajouté(e) aux utilisateurs tests.";
-    return `Erreur Google : ${description || code}`;
+  function oauthErrorMessage(code) {
+    return code === "access_denied" ? "Accès refusé par Google." : "Connexion temporairement indisponible.";
   }
   function hasValidToken() { return accessToken && Date.now() < tokenExpiry; }
 
@@ -168,10 +153,11 @@
     constructor(message, status, reason) { super(message); this.status = status; this.reason = reason; }
   }
   const REASONS = {
-    quotaExceeded: "Quota quotidien de l'API YouTube épuisé pour ce projet Google Cloud : réessayez demain.",
-    accessNotConfigured: "L'API YouTube Data v3 n'est pas activée dans le projet Google Cloud de cet ID client.",
-    playlistNotFound: "Playlist des vidéos likées introuvable pour ce compte.",
-    insufficientPermissions: "Autorisation insuffisante : reconnectez-vous en acceptant l'accès YouTube.",
+    quotaExceeded: "Quota quotidien YouTube atteint : réessayez demain.",
+    dailyLimitExceeded: "Quota quotidien YouTube atteint : réessayez demain.",
+    accessNotConfigured: "Connexion temporairement indisponible.",
+    playlistNotFound: "Impossible de lire vos vidéos likées.",
+    insufficientPermissions: "Autorisez l'accès à votre compte YouTube pour continuer.",
   };
 
   async function api(path, params, signal) {
@@ -192,8 +178,8 @@
       const err = body.error || {};
       const reason = (err.errors && err.errors[0] && err.errors[0].reason) || "";
       if ((res.status >= 500 || reason === "rateLimitExceeded") && attempt < 3) { await sleep(800 * 2 ** attempt); continue; }
-      if (res.status === 401) { accessToken = null; throw new ApiError("Session Google expirée : cliquez sur « Actualiser » pour vous reconnecter.", 401, reason); }
-      throw new ApiError(REASONS[reason] || `Erreur API YouTube ${res.status} : ${err.message || res.statusText}`, res.status, reason);
+      if (res.status === 401) { accessToken = null; throw new ApiError("Session expirée : cliquez sur « Actualiser ».", 401, reason); }
+      throw new ApiError(REASONS[reason] || "YouTube ne répond pas pour le moment : réessayez plus tard.", res.status, reason);
     }
   }
 
@@ -247,6 +233,7 @@
   function show(view) {
     views.forEach(v => $(v).classList.toggle("hidden", v !== view));
     document.body.classList.remove("side-open");
+    window.scrollTo({ top: 0, behavior: "instant" });
   }
   function setMsg(el, text, kind) {
     el.textContent = text || "";
@@ -256,50 +243,76 @@
   function showHome(error, info) {
     setMsg($("homeError"), error, "err");
     setMsg($("homeInfo"), info, "info");
-    updateSigninState();
     show("view-home");
-  }
-  function updateSigninState() {
-    const btn = $("signin");
-    if (location.protocol === "file:") {
-      btn.disabled = true;
-      setMsg($("homeError"), "Ouvrez ce site via http(s) (GitHub Pages ou un serveur local) : la connexion Google ne fonctionne pas depuis un fichier local.", "err");
-    } else if (!clientId()) {
-      btn.disabled = true;
-      if ($("homeError").classList.contains("hidden")) {
-        setMsg($("homeInfo"), "Aucun ID client OAuth n'est configuré pour ce site : ouvrez « Configuration » pour saisir le vôtre.", "info");
-      }
-    } else {
-      btn.disabled = false;
-    }
+    if (error || info) $("top").scrollIntoView({ behavior: "instant" });
   }
   function banner(text, kind) { setMsg($("banner"), text, kind || "info"); }
 
   // ======================================================================= //
-  // Synchronisation (connexion + récupération)
+  // Connexion, synchronisation, déconnexion
   // ======================================================================= //
-  let current = null;          // enregistrement en cache affiché
+  let current = null;          // enregistrement affiché (cache IndexedDB)
   let syncAbort = null;
+  const errorText = e => (e && e.name === "AbortError") ? "Synchronisation annulée." : (e && e.message) || "Erreur inattendue.";
+  async function save(rec) { try { await store.put(rec); } catch (e) { console.warn("Cache local impossible :", e); } }
 
-  async function sync() {
+  function showLoading(who) {
+    const bar = $("loadBar");
+    bar.classList.add("indeterminate");
+    bar.firstElementChild.style.width = "0";
+    bar.removeAttribute("aria-valuenow");
+    $("loadText").textContent = "Connexion à YouTube…";
+    $("loadWho").textContent = who || "Lecture de votre liste « J'aime » sur YouTube.";
+    show("view-loading");
+  }
+
+  /** Bouton « Se connecter » de la vitrine. */
+  async function signIn() {
     if (syncAbort) return;
-    const hadData = !!current;
-    // 1. Jeton (depuis le clic : pas d'await avant requestAccessToken)
-    try {
-      if (!hasValidToken()) await requestToken(hadData ? "" : "select_account");
-    } catch (e) {
-      return hadData ? banner(e.message, "err") : showHome(e.message);
+    // Jeton demandé immédiatement (dans le clic) : la fenêtre Google est un pop-up.
+    try { if (!hasValidToken()) await requestToken("select_account"); }
+    catch (e) { return showHome(errorText(e)); }
+
+    let cached = null;
+    try { cached = await store.get(); } catch (e) { /* pas de cache */ }
+    if (cached && cached.account && Array.isArray(cached.videos)) {
+      // Même compte qu'en cache : réouverture immédiate, sans tout re-télécharger.
+      syncAbort = new AbortController();
+      showLoading();
+      try {
+        const account = await fetchAccount(syncAbort.signal);
+        if (account.id === cached.account.id) {
+          cached.signedOut = false;
+          cached.account = account;
+          await save(cached);
+          dashboard.load(cached);
+          banner(`Bon retour, ${account.title} ! Cliquez sur « Actualiser » pour récupérer vos derniers likes.`);
+          return;
+        }
+      } catch (e) {
+        return showHome(errorText(e));
+      } finally {
+        syncAbort = null;
+      }
     }
-    // 2. Récupération
+    await synchronize(false);
+  }
+
+  /** Bouton « Actualiser » du tableau de bord. */
+  async function refresh() {
+    if (syncAbort) return;
+    try { if (!hasValidToken()) await requestToken(""); }
+    catch (e) { return banner(errorText(e), "err"); }
+    await synchronize(true);
+  }
+
+  async function synchronize(fromDashboard) {
     syncAbort = new AbortController();
     const bar = $("loadBar"), text = $("loadText");
-    bar.classList.add("indeterminate"); bar.firstElementChild.style.width = "0";
-    text.textContent = "Connexion à YouTube…";
-    $("loadWho").textContent = "Lecture de votre playlist « J'aime » sur YouTube.";
-    show("view-loading");
+    showLoading();
     try {
       const account = await fetchAccount(syncAbort.signal);
-      $("loadWho").textContent = `Bonjour ${account.title} ! Lecture de votre playlist « J'aime » sur YouTube.`;
+      $("loadWho").textContent = `Bonjour ${account.title} ! Lecture de votre liste « J'aime » sur YouTube.`;
       const videos = await fetchAllLikes((done, total) => {
         if (total) {
           bar.classList.remove("indeterminate");
@@ -311,28 +324,38 @@
           text.textContent = `${nf.format(done)} vidéos`;
         }
       }, syncAbort.signal);
-      const rec = { version: 1, account, fetchedAt: Date.now(), videos };
-      try { await store.put(rec); } catch (e) { console.warn("Cache local impossible :", e); }
+      const rec = { version: 1, account, fetchedAt: Date.now(), videos, signedOut: false };
+      await save(rec);
       dashboard.load(rec);
-      banner(`${plural(videos.length, "vidéo likée récupérée", "vidéos likées récupérées")}.`);
+      banner(`${plural(videos.length, "vidéo likée synchronisée", "vidéos likées synchronisées")}.`);
     } catch (e) {
-      const message = e.name === "AbortError" ? "Récupération annulée." : e.message;
-      if (hadData) { dashboard.load(current); banner(message, "err"); } else { showHome(message); }
+      if (fromDashboard && current) { dashboard.load(current); banner(errorText(e), "err"); }
+      else showHome(errorText(e));
     } finally {
       syncAbort = null;
     }
   }
 
+  /** « Se déconnecter » : révoque le jeton, ferme la session, garde le cache local. */
+  async function logout() {
+    if (syncAbort) syncAbort.abort();
+    await revokeToken();
+    if (current) { current.signedOut = true; await save(current); }
+    current = null;
+    showHome(null, "Vous êtes déconnecté(e).");
+  }
+
+  /** « Supprimer mes données » : efface IndexedDB, révoque l'accès Google, retour à l'accueil. */
   async function deleteLocalData() {
-    if (!confirm("Supprimer le cache de vos likes dans ce navigateur et révoquer l'accès de ce site à votre compte Google ?")) return;
+    if (!confirm("Supprimer toutes vos données enregistrées dans ce navigateur et retirer l'accès de Cleaner YouTube à votre compte Google ?")) return;
     if (syncAbort) syncAbort.abort();
     const revoked = await revokeToken();
     await store.clear();
     try { sessionStorage.clear(); } catch (e) { /* ignoré */ }
     current = null;
     showHome(null, revoked
-      ? "Vos données locales ont été supprimées et l'accès a été révoqué."
-      : "Vos données locales ont été supprimées. Pour retirer aussi l'accès accordé à ce site : myaccount.google.com/permissions.");
+      ? "Vos données ont été supprimées et l'accès à votre compte Google a été retiré."
+      : "Vos données ont été supprimées. Pour retirer aussi l'accès accordé à Cleaner YouTube, rendez-vous sur myaccount.google.com/permissions.");
   }
 
   // ======================================================================= //
@@ -340,7 +363,7 @@
   // ======================================================================= //
   const dashboard = (() => {
     let CH = [], V = [];
-    const state = { sel: new Set(), q: "", mode: "p", year: "", order: "desc", chq: "" };
+    const state = { sel: new Set(), q: "", mode: "p", year: "", order: "desc", chq: "", chSort: "n" };
     let filtered = [], cursor = 0, likeRange = null, pubRange = null, realChannels = 0;
     const shown = new Map(), closed = new Set();
 
@@ -374,11 +397,11 @@
       likeRange = range("l"); pubRange = range("p");
       realChannels = CH.filter(c => !c.u).length;
 
-      $("account").textContent = `👤 ${rec.account ? rec.account.title : ""} · likes du ${fmtStamp.format(new Date(rec.fetchedAt))}`;
+      $("account").textContent = `${rec.account ? rec.account.title : ""} · synchronisé le ${fmtStamp.format(new Date(rec.fetchedAt))}`;
       $("chCount").textContent = nf.format(realChannels);
-      Object.assign(state, { q: "", mode: "p", year: "", order: "desc", chq: "" });
+      Object.assign(state, { q: "", mode: "p", year: "", order: "desc", chq: "", chSort: "n" });
       state.sel.clear(); closed.clear();
-      $("q").value = ""; $("chq").value = ""; $("mode").value = "p"; $("order").value = "desc";
+      $("q").value = ""; $("chq").value = ""; $("mode").value = "p"; $("order").value = "desc"; $("chSort").value = "n";
       banner("");
       renderYears(); renderChannels(); applyFilters();
       show("view-dash");
@@ -404,19 +427,28 @@
 
     function renderChannels() {
       const q = norm(state.chq), html = [];
-      for (const c of CH) {
+      let list = CH;
+      if (state.chSort === "az") {
+        // Ordre alphabétique ; les vidéos indisponibles restent en bas.
+        list = [...CH].sort((a, b) => (a.u - b.u) || a.t.localeCompare(b.t, "fr", { sensitivity: "base" }));
+      }
+      for (const c of list) {
         if (q && !c.k.includes(q)) continue;
         const on = state.sel.has(c.i);
-        html.push(`<div class="ch${on ? " on" : ""}${c.u ? " unavailable" : ""}" data-i="${c.i}" role="option" aria-selected="${on}">` +
-          `<input type="checkbox" tabindex="-1" ${on ? "checked" : ""} aria-label="Ajouter à la sélection">` +
-          `<span class="name" title="${esc(c.t)}">${esc(c.t)}</span>` +
+        html.push(`<div class="ch${on ? " on" : ""}${c.u ? " unavailable" : ""}" data-i="${c.i}" role="option" aria-selected="${on}" title="${esc(c.t)} — ${plural(c.n, "vidéo likée", "vidéos likées")}">` +
+          `<input type="checkbox" tabindex="-1" ${on ? "checked" : ""} aria-label="Ajouter ${esc(c.t)} à la sélection">` +
+          `<span class="name">${esc(c.t)}</span>` +
           `<span class="n">${nf.format(c.n)}</span></div>`);
       }
-      $("chlist").innerHTML = html.join("") || '<div class="notice">Aucune chaîne trouvée.</div>';
+      $("chlist").innerHTML = html.join("") || '<div class="notice">Aucune chaîne ne correspond à cette recherche.</div>';
+      $("chqClear").classList.toggle("hidden", !state.chq);
       $("allCh").classList.toggle("on", state.sel.size === 0);
-      $("selInfo").textContent = state.sel.size
-        ? `${plural(state.sel.size, "chaîne sélectionnée", "chaînes sélectionnées")} · case ou Ctrl/⌘ + clic pour en ajouter`
-        : "Clic : une chaîne · case ou Ctrl/⌘ + clic : plusieurs";
+      // Badges retirables des chaînes sélectionnées, au-dessus de la liste.
+      $("selArea").classList.toggle("hidden", state.sel.size === 0);
+      $("selChips").innerHTML = [...state.sel].map(i => CH[i]).filter(Boolean).map(c =>
+        `<button type="button" class="sel-chip" data-remove="${c.i}" title="Retirer ${esc(c.t)} de la sélection">` +
+        `<span>${esc(c.t)}</span><i aria-hidden="true">×</i></button>`).join("");
+      $("clearSel").textContent = `Effacer la sélection (${nf.format(state.sel.size)})`;
     }
 
     function renderYears() {
@@ -594,7 +626,18 @@
         selectChannels([i], additive);
         if (!additive) document.body.classList.remove("side-open");
       });
-      $("allCh").addEventListener("click", () => selectChannels([], false));
+      $("allCh").addEventListener("click", () => { selectChannels([], false); document.body.classList.remove("side-open"); });
+      $("clearSel").addEventListener("click", () => selectChannels([], false));
+      $("selChips").addEventListener("click", e => {
+        const chip = e.target.closest("[data-remove]");
+        if (chip) selectChannels([+chip.dataset.remove], true);  // additif : retire la chaîne
+      });
+      $("chqClear").addEventListener("click", () => { state.chq = ""; $("chq").value = ""; renderChannels(); $("chq").focus(); });
+      $("chq").addEventListener("keydown", e => { if (e.key === "Escape" && state.chq) { e.preventDefault(); $("chqClear").click(); } });
+      $("chSort").addEventListener("change", e => { state.chSort = e.target.value; renderChannels(); });
+      const closeSide = () => document.body.classList.remove("side-open");
+      $("sideClose").addEventListener("click", closeSide);
+      $("sideBackdrop").addEventListener("click", closeSide);
       $("content").addEventListener("click", e => {
         const more = e.target.closest("[data-more]");
         if (more) {
@@ -617,6 +660,7 @@
         Object.assign(state, { q: "", mode: "p", year: "", order: "desc", chq: "" });
         state.sel.clear(); closed.clear();
         $("q").value = ""; $("chq").value = ""; $("mode").value = "p"; $("order").value = "desc";
+        banner("");
         renderYears(); renderChannels(); applyFilters();
       });
       $("toggleSide").addEventListener("click", () => document.body.classList.toggle("side-open"));
@@ -637,42 +681,75 @@
   })();
 
   // ======================================================================= //
-  // Dialogue de configuration
+  // Démonstration interactive de la page d'accueil (données fictives)
   // ======================================================================= //
-  function openConfig() {
-    $("clientIdInput").value = clientId();
-    $("cfgSource").textContent = clientIdSource();
-    $("cfgOrigin").textContent = location.origin && location.origin !== "null" ? location.origin : "(ouvrez le site via http/https)";
-    setMsg($("cfgError"), "", "err");
-    $("cfgReset").disabled = !storedClientId();
-    $("configDialog").showModal();
+  const demo = (() => {
+    const CHANNELS = ["Cuisine du Monde", "Tech Explorer", "Voyages & Co", "Musique Live"];
+    const VIDEOS = [
+      [0, 2026, "Ramen maison en 20 min"], [0, 2026, "Le secret du pain croustillant"], [0, 2025, "Curry thaï express"],
+      [0, 2025, "Tarte tatin inratable"], [0, 2024, "5 sauces de base"], [0, 2024, "Pâtes fraîches sans machine"],
+      [1, 2026, "Test : le nouveau portable"], [1, 2025, "Monter son PC pas à pas"], [1, 2025, "Les meilleures applis"],
+      [1, 2024, "Domotique facile"], [2, 2026, "Islande en van"], [2, 2026, "Japon : 15 jours"],
+      [2, 2025, "Lisbonne à petit prix"], [2, 2024, "Randonnée dans les Alpes"], [3, 2026, "Live acoustique"],
+      [3, 2025, "Session piano au coucher du soleil"], [3, 2024, "Concert en plein air"], [3, 2024, "Jam session improvisée"],
+    ];
+    const YEARS = [2026, 2025, 2024];
+    const state = { ch: 0, year: null };  // Cuisine du Monde présélectionnée pour montrer le filtre
+
+    function render() {
+      const counts = CHANNELS.map((_, i) => VIDEOS.filter(v => v[0] === i).length);
+      $("demoChannels").innerHTML =
+        `<button type="button" class="mock-ch all${state.ch === null ? " on" : ""}" data-ch="" aria-pressed="${state.ch === null}"><b></b><span>Toutes</span><em>${VIDEOS.length}</em></button>` +
+        CHANNELS.map((name, i) =>
+          `<button type="button" class="mock-ch${state.ch === i ? " on" : ""}" data-ch="${i}" aria-pressed="${state.ch === i}"><b></b><span>${esc(name)}</span><em>${counts[i]}</em></button>`).join("");
+      $("demoYears").innerHTML = [null, ...YEARS].map(y =>
+        `<button type="button" class="${state.year === y ? "on" : ""}" data-year="${y ?? ""}" aria-pressed="${state.year === y}">${y ?? "Toutes les années"}</button>`).join("");
+      const list = VIDEOS.map((v, k) => [...v, k]).filter(v => (state.ch === null || v[0] === state.ch) && (state.year === null || v[1] === state.year));
+      const html = YEARS.map(y => {
+        const items = list.filter(v => v[1] === y);
+        if (!items.length) return "";
+        return `<div class="mock-year">${y} <em>${plural(items.length, "vidéo", "vidéos")}</em></div>` +
+          `<div class="mock-grid">${items.map(v => `<div class="t t${(v[3] % 6) + 1}" title="${esc(CHANNELS[v[0]])}">${esc(v[2])}</div>`).join("")}</div>`;
+      }).join("");
+      $("demoResults").innerHTML = html || `<p class="mock-empty">Aucune vidéo pour ce filtre.</p>`;
+    }
+    function bind() {
+      if (!$("demo")) return;
+      $("demoChannels").addEventListener("click", e => {
+        const b = e.target.closest("[data-ch]");
+        if (!b) return;
+        const i = b.dataset.ch === "" ? null : +b.dataset.ch;
+        state.ch = state.ch === i ? null : i;
+        render();
+      });
+      $("demoYears").addEventListener("click", e => {
+        const b = e.target.closest("[data-year]");
+        if (!b) return;
+        state.year = b.dataset.year === "" ? null : +b.dataset.year;
+        render();
+      });
+      render();
+    }
+    return { bind };
+  })();
+
+  // ---- Liens vers une question de la FAQ : ouvre la réponse ciblée -------- //
+  function openFaqTarget() {
+    const target = location.hash && document.getElementById(location.hash.slice(1));
+    if (target instanceof HTMLDetailsElement) target.open = true;
   }
-  function applyClientIdChange() {
-    tokenClient = null; tokenClientFor = null; accessToken = null; tokenExpiry = 0;
-    try { ensureTokenClient(); } catch (e) { /* pas d'ID */ }
-    if (!$("view-home").classList.contains("hidden")) showHome();
-  }
-  function bindConfig() {
-    document.querySelectorAll("[data-open-config]").forEach(b => b.addEventListener("click", openConfig));
-    $("cfgClose").addEventListener("click", () => $("configDialog").close());
-    $("cfgSave").addEventListener("click", () => {
-      const value = $("clientIdInput").value.trim();
-      if (!CLIENT_ID_RE.test(value)) {
-        return setMsg($("cfgError"), "Format attendu : 123456789012-xxxxxxxx.apps.googleusercontent.com (ID client, pas le « code secret »).", "err");
-      }
-      try {
-        if (value === defaultClientId) localStorage.removeItem(CLIENT_ID_KEY);
-        else localStorage.setItem(CLIENT_ID_KEY, value);
-      } catch (e) {
-        return setMsg($("cfgError"), "Impossible d'enregistrer dans ce navigateur (stockage bloqué).", "err");
-      }
-      $("configDialog").close();
-      applyClientIdChange();
-    });
-    $("cfgReset").addEventListener("click", () => {
-      try { localStorage.removeItem(CLIENT_ID_KEY); } catch (e) { /* ignoré */ }
-      $("configDialog").close();
-      applyClientIdChange();
+
+  // ---- Modales du pied de page ------------------------------------------- //
+  function bindDialogs() {
+    document.querySelectorAll("[data-dialog]").forEach(btn => btn.addEventListener("click", () => {
+      const d = $(btn.dataset.dialog);
+      if (d && typeof d.showModal === "function") d.showModal();
+    }));
+    document.querySelectorAll("dialog.modal").forEach(d => {
+      d.addEventListener("click", e => {
+        // Fermeture : bouton × ou clic sur le fond (en dehors du contenu).
+        if (e.target.closest("[data-close]") || e.target === d) d.close();
+      });
     });
   }
 
@@ -681,17 +758,26 @@
   // ======================================================================= //
   async function init() {
     dashboard.bind();
-    bindConfig();
-    $("signin").addEventListener("click", () => sync());
-    $("refresh").addEventListener("click", () => sync());
+    demo.bind();
+    bindDialogs();
+    window.addEventListener("hashchange", openFaqTarget);
+    openFaqTarget();
+    // Tous les boutons « Se connecter » de la vitrine : actifs dès le chargement.
+    document.querySelectorAll(".js-signin").forEach(btn => {
+      btn.disabled = false;
+      btn.addEventListener("click", () => signIn());
+    });
+    $("refresh").addEventListener("click", () => refresh());
+    $("logout").addEventListener("click", () => logout());
     $("deleteData").addEventListener("click", deleteLocalData);
     $("loadCancel").addEventListener("click", () => { if (syncAbort) syncAbort.abort(); });
     // Prépare le client OAuth dès que GIS est chargé, pour ouvrir la fenêtre Google sans délai au clic.
-    if (clientId() && location.protocol !== "file:") waitForGis().then(() => { try { ensureTokenClient(); } catch (e) { /* ignoré */ } }).catch(() => {});
+    if (CLIENT_ID && location.protocol !== "file:") waitForGis().then(() => { try { ensureTokenClient(); } catch (e) { /* ignoré */ } }).catch(() => {});
 
     let rec = null;
     try { rec = await store.get(); } catch (e) { console.warn(e); }
-    if (rec && Array.isArray(rec.videos)) dashboard.load(rec);
+    // Session active (données en cache, pas de déconnexion explicite) : tableau de bord direct.
+    if (rec && Array.isArray(rec.videos) && !rec.signedOut) dashboard.load(rec);
     else showHome();
   }
 

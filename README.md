@@ -45,7 +45,9 @@ Le site est **100 % statique** (HTML, CSS, JavaScript). Chaque visiteur se conne
 2. les likes (playlist `LL`, 50 par page) sont lus directement sur `https://www.googleapis.com/youtube/v3/playlistItems`, avec une barre de progression ;
 3. ils sont mis en cache **uniquement dans le navigateur du visiteur** (IndexedDB). Aucun serveur ne voit ses données ;
 4. le tableau de bord sombre s'affiche : statistiques, chaînes triées par nombre de likes avec recherche, filtres par année (de publication ou de like) et par mot-clé, sections repliables par année, ouverture par lots de 5 onglets, export CSV/JSON ;
-5. **Actualiser** relit les likes. **Supprimer mes données locales** vide le cache du navigateur et révoque le jeton (`google.accounts.oauth2.revoke`).
+5. **Actualiser** relit les likes. **Se déconnecter** révoque le jeton et revient à la page d'accueil (le cache reste dans le navigateur : une reconnexion avec le même compte rouvre le tableau de bord immédiatement). **Supprimer mes données** vide le cache du navigateur et révoque l'accès (`google.accounts.oauth2.revoke`).
+
+Tant qu'aucune session n'est ouverte, le site affiche une page d'accueil de présentation (fonctionnalités, fonctionnement, confidentialité, FAQ).
 
 Le jeton d'accès reste en mémoire (jamais stocké) et expire au bout d'environ une heure. Un clic sur **Actualiser** en redemande un.
 
@@ -79,7 +81,8 @@ Le jeton d'accès reste en mémoire (jamais stocké) et expire au bout d'environ
    ```js
    const GOOGLE_CLIENT_ID = "123456789012-xxxx.apps.googleusercontent.com";
    ```
-   Un ID client OAuth n'est **pas un secret** : il peut être publié. Si vous laissez la valeur vide, chaque visiteur peut saisir son propre ID client dans le panneau **Configuration** du site (enregistré dans son navigateur). C'est pratique pour un fork.
+   Un ID client OAuth n'est **pas un secret** : il peut être publié. C'est la seule source de configuration du site : les visiteurs n'ont rien à régler, le bouton de connexion est actif dès le chargement. Si vous forkez le projet, remplacez cette valeur par l'ID client de votre propre projet Google Cloud.
+   Après une modification de `config.js` ou `app.js`, incrémentez le paramètre de version dans `index.html` (`?v=3` → `?v=4` sur `config.js`, `app.js` et `style.css`) pour que les navigateurs ne gardent pas l'ancienne version en cache.
 2. Poussez le dépôt sur GitHub, puis **Settings → Pages → Build and deployment** :
    - Source : **Deploy from a branch** ;
    - Branche : `main`, dossier **`/ (root)`** → **Save**.
@@ -181,7 +184,8 @@ Google modifie régulièrement cette interface : si un bouton est introuvable, l
 | Site : « Accès bloqué » / `access_denied` | Ajoutez l'adresse Gmail dans **Audience → Utilisateurs tests**. |
 | Site : `origin_mismatch` / `idpiframe_initialization_failed` | Ajoutez l'origine exacte du site (`https://<pseudo>.github.io`) dans les **Origines JavaScript autorisées**, puis patientez quelques minutes. |
 | Site : la fenêtre Google ne s'ouvre pas | Autorisez les pop-ups pour le site ; désactivez les bloqueurs qui bloquent `accounts.google.com`. |
-| Site : « Aucun ID client OAuth configuré » | Renseignez `assets/config.js` ou le panneau **Configuration**. |
+| Site : « GOOGLE_CLIENT_ID est vide » | Renseignez l'ID client dans `assets/config.js`, puis incrémentez `?v=` dans `index.html`. |
+| Site : ancienne version encore affichée | Rechargez sans cache (Ctrl+F5) ; vérifiez que `?v=` a bien été incrémenté. |
 | CLI : `Fichier d'identifiants OAuth introuvable` | Placez `client_secrets.json` à la racine (B.1). |
 | CLI : `invalid_grant` / token expiré | Supprimez `token.json` et relancez. |
 | `403 accessNotConfigured` | Activez **YouTube Data API v3** dans le projet Cloud. |
