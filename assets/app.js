@@ -336,28 +336,15 @@
     }
   }
 
-  /** « Se déconnecter » : révoque le jeton, ferme la session, garde le cache local. */
+  /** « Se déconnecter » : révoque le jeton, vide le cache local et revient à l'accueil. */
   async function logout() {
     if (syncAbort) syncAbort.abort();
     await revokeToken();
-    if (current) { current.signedOut = true; await save(current); }
-    current = null;
-    showHome(null, "Vous êtes déconnecté(e).");
-  }
-
-  /** « Supprimer mes données » : efface IndexedDB, révoque l'accès Google, retour à l'accueil. */
-  async function deleteLocalData() {
-    if (!confirm("Supprimer toutes vos données enregistrées dans ce navigateur et retirer l'accès de Cleaner YouTube à votre compte Google ?")) return;
-    if (syncAbort) syncAbort.abort();
-    const revoked = await revokeToken();
     await store.clear();
     try { sessionStorage.clear(); } catch (e) { /* ignoré */ }
     current = null;
-    showHome(null, revoked
-      ? "Vos données ont été supprimées et l'accès à votre compte Google a été retiré."
-      : "Vos données ont été supprimées. Pour retirer aussi l'accès accordé à Cleaner YouTube, rendez-vous sur myaccount.google.com/permissions.");
+    showHome(null, "Vous êtes déconnecté(e).");
   }
-
   // ======================================================================= //
   // Tableau de bord
   // ======================================================================= //
@@ -769,10 +756,9 @@
     });
     $("refresh").addEventListener("click", () => refresh());
     $("logout").addEventListener("click", () => logout());
-    $("deleteData").addEventListener("click", deleteLocalData);
     $("loadCancel").addEventListener("click", () => { if (syncAbort) syncAbort.abort(); });
     // Prépare le client OAuth dès que GIS est chargé, pour ouvrir la fenêtre Google sans délai au clic.
-    if (CLIENT_ID && location.protocol !== "file:") waitForGis().then(() => { try { ensureTokenClient(); } catch (e) { /* ignoré */ } }).catch(() => {});
+    if (CLIENT_ID && location.protocol !== "file:") waitForGis().then(() => { try { ensureTokenClient(); } catch (e) { /* ignoré */ } }).catch(() => { });
 
     let rec = null;
     try { rec = await store.get(); } catch (e) { console.warn(e); }
