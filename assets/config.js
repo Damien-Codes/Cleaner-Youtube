@@ -8,4 +8,4 @@
  * Laissez la valeur vide si chaque visiteur doit saisir son propre ID client dans le panneau
  * « Configuration » du site (utile pour un fork).
  */
-const GOOGLE_CLIENT_ID = "";
+const GOOGLE_CLIENT_ID = "344055175331-3k0t72s0mp2e59d706s4pgp1gfthc16k.apps.googleusercontent.com";
