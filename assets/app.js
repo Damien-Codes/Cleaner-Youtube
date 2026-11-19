@@ -343,7 +343,6 @@
     await store.clear();
     try { sessionStorage.clear(); } catch (e) { /* ignoré */ }
     current = null;
-    showHome(null, "Vous êtes déconnecté(e).");
   }
   // ======================================================================= //
   // Tableau de bord
